@@ -13,6 +13,10 @@ def ground(pos) -> vec3:
     pos = loc(pos)
     return vec3(pos[0], pos[1], 0)
 
+def draw_ground(pos) -> vec3:
+    pos = loc(pos)
+    return vec3(pos[0], pos[1], 10)
+
 def distance(obj1, obj2) -> float:
     return norm(loc(obj1) - loc(obj2))
 

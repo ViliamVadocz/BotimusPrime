@@ -1,6 +1,6 @@
 from maneuvers.kit import *
-
 from maneuvers.driving.drive import Drive
+
 
 class Carry(Maneuver):
 
@@ -16,8 +16,8 @@ class Carry(Maneuver):
         ball = Ball(self.ball)
         car = self.car
 
-        while (ball.pos[2] > 120 or ball.vel[2] > 0) and ball.t < car.time + 10:
-            ball.step(1/60)
+        while (ball.pos[2] > 120 or ball.vel[2] > 0) and ball.t < car.time + 5:
+            ball.step(1/120)
 
         ball_local = local(car, ground(ball.pos))
         target = local(car, self.target)
@@ -45,8 +45,20 @@ class Carry(Maneuver):
 
         self.drive.step(dt)
         self.controls = self.drive.controls
-        self.finished = self.ball.pos[2] < 100 or ground_distance(self.ball, self.car) > 1500
+        self.finished = self.ball.pos[2] < 100 or ground_distance(self.ball, self.car) > 3000
 
     def render(self, draw: DrawingTool):
+
+        # carry force
         draw.color(draw.pink)
         draw.triangle(self.car.pos + self._shift_direction * 50, self._shift_direction)
+
+        # target dir
+        draw.color(draw.cyan)
+        target_dir = ground_direction(self.car.pos, self.target) 
+        draw.triangle(self.car.pos + target_dir * 50, target_dir)
+
+        # ball landing pos
+        if self.ball.pos[2] > 200:
+            draw.color(draw.green)
+            draw.circle(ground(self.ball.pos), 90)

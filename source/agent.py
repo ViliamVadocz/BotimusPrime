@@ -5,7 +5,6 @@ from RLUtilities.Simulation import Input
 from RLUtilities.LinearAlgebra import norm
 
 from tools.drawing import DrawingTool
-from tools.maneuver_history import ManeuverHistory
 from tools.quick_chats import QuickChatTool
 
 from maneuvers.kit import Maneuver
@@ -29,6 +28,7 @@ class BotimusPrime(BaseAgent):
         self.info: GameInfo = GameInfo(self.index, self.team)
         self.controls: Input = Input()
         self.maneuver: Maneuver = None
+        self.state: str = ""
 
         self.time = 0
         self.prev_time = 0
@@ -37,7 +37,6 @@ class BotimusPrime(BaseAgent):
         self.ticks = 0
 
         self.draw: DrawingTool = DrawingTool(self.renderer)
-        self.history: ManeuverHistory = ManeuverHistory()
 
         self.strategy = SoccarStrategy(self.info)
 
@@ -54,8 +53,6 @@ class BotimusPrime(BaseAgent):
         self.time = packet.game_info.seconds_elapsed
         dt = self.time - self.prev_time
         if packet.game_info.is_kickoff_pause and not isinstance(self.maneuver, Kickoff):
-            if self.history.history:
-                self.history.history.clear()
             self.maneuver = None
 
         self.prev_time = self.time
@@ -91,10 +88,20 @@ class BotimusPrime(BaseAgent):
 
             self.info.predict_ball(self.PREDICTION_RATE * self.PREDITION_DURATION, 1 / self.PREDICTION_RATE)
 
-            self.maneuver, reason = self.strategy.get_maneuver_with_reason()
+            self.maneuver, self.state = self.strategy.get_maneuver_with_state()
             
             name = str(type(self.maneuver).__name__)
-            self.history.add(name, reason)
+
+            # if self.RENDERING:
+            #     draw = self.draw
+            #     draw.group("state" + str(self.index))
+            #     draw.team_color(self.team)
+            #     draw.string2D(20, 200 + self.index * 30, self.name, 1)
+            #     draw.color(draw.white)
+            #     draw.string2D(260, 200 + self.index * 30, name, 1)
+            #     draw.alpha(0.5)
+            #     draw.string2D(400, 200 + self.index * 30, self.state, 1)
+            #     draw.group()
 
             self.last_ball_vel = norm(self.info.ball.vel)
 
@@ -112,7 +119,6 @@ class BotimusPrime(BaseAgent):
 
 
         if self.RENDERING:
-            # self.history.render(self.draw)
             self.draw.execute()
 
         self.maybe_chat(packet)

@@ -7,7 +7,7 @@ class Strike(Maneuver):
     allow_backwards = False
     update_interval = 0.3
     stop_updating = 0.8
-    max_additional_time = 1
+    max_additional_time = 1.5
 
     def __init__(self, car: Car, info: GameInfo, target: vec3 = None):
         super().__init__(car)
@@ -72,12 +72,14 @@ class Strike(Maneuver):
     def render(self, draw: DrawingTool):
         self.arrive.render(draw)
         draw.color(draw.lime)
-        draw.circle(self.intercept.ground_pos, 93)
+        draw.circle(self.intercept.ground_pos + vec3(0,0,10), 93)
         draw.point(self.intercept.ball.pos)
 
         if self.target is not None:
-            draw.color(draw.yellow)
-            draw.point(self.target)
+            draw.color(draw.pink)
+            target_dir = ground_direction(self.intercept.ground_pos, self.target)
+            pos = self.intercept.ground_pos + target_dir * 150 + vec3(0,0,10)
+            draw.triangle(pos, target_dir, 100, 150)
 
         if not self._has_drawn_prediction:
             self._has_drawn_prediction = True

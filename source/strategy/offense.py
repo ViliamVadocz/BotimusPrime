@@ -80,10 +80,10 @@ class Offense:
     def any_shot(self, car: Car, target: vec3, intercept: Intercept) -> Maneuver:
         ball = intercept.ball
 
-        if 120 < ball.pos[2] < 1500 and abs(ball.vel[2]) < 1200 and ground_distance(car, intercept) < 1000:
+        if (120 < ball.pos[2] < 1500 or abs(ball.vel[2]) > 300) and ground_distance(car, intercept) < 2000:
             is_opponent_close = False
             for opponent in self.info.opponents:
-                if ground_distance(opponent, car) < ball.pos[2] * 10 + 500:
+                if ground_distance(opponent, car) < ball.pos[2] * 2 + 1000:
                     is_opponent_close = True
                     break
             if not is_opponent_close:

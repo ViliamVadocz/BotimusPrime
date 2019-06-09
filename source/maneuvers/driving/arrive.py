@@ -54,7 +54,9 @@ class Arrive(Maneuver):
         self.drive.render(draw)
 
         if self.target_direction is not None:
-            draw.color(draw.lime)
-            draw.triangle(self.target - self.target_direction * 250, self.target_direction)
+            for i in range(200, int(ground_distance(self.drive.target_pos, self.target)), 200):
+                target_dir = ground_direction(self.drive.target_pos, self.target)
+                pos = draw_ground(self.drive.target_pos) + target_dir * i
+                draw.triangle(pos, target_dir)
 
         

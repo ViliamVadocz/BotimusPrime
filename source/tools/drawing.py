@@ -15,7 +15,7 @@ class DrawingTool:
 
     black = 0, 0, 0
     white = 255, 255, 255
-    gray = 128, 128, 128
+    gray = 180, 180, 180
     blue = 0, 0, 255
     red = 255, 0, 0
     green = 0, 128, 0
@@ -23,7 +23,7 @@ class DrawingTool:
     yellow = 255, 255, 0
     orange = 225, 128, 0
     cyan = 0, 255, 255
-    pink = 255, 0, 255
+    pink = 255, 100, 255
     purple = 128, 0, 128
     teal = 0, 128, 128
 
@@ -98,6 +98,9 @@ class DrawingTool:
             self._opacity, color[0], color[1], color[2]
         )
 
+    def team_color(self, team_index: int):
+        self._check_limit()
+        self._color = self._renderer.team_color(team_index)
 
     # render items
 
@@ -169,12 +172,12 @@ class DrawingTool:
         for i in range(step, len(ball_predictions), step):
             if time_limit is not None and ball_predictions[i].t > time_limit:
                 break
+            self.alpha(float(i) / len(ball_predictions))
             self.line(ball_predictions[i - step], ball_predictions[i])
 
     def ball_prediction(self, info: GameInfo, time_limit=None):
         self.group('prediction')
         self.color(self.yellow)
-        self.alpha(0.5)
         self.ball_trajectory(info.ball_predictions, 4, time_limit)
         self.group()
 
