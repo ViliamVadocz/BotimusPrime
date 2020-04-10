@@ -16,10 +16,10 @@ class Goal:
 
     def __init__(self, team):
         sign = 1 - 2 * team
+        self.team = team
         self.center = vec3(0, -sign * Goal.DISTANCE, Goal.HEIGHT / 2.0)
         self.l_post = vec3(sign * Goal.WIDTH / 2, -sign * Goal.DISTANCE, 0)
         self.r_post = vec3(-sign * Goal.WIDTH / 2, -sign * Goal.DISTANCE, 0)
-        self.team = team
 
     def inside(self, pos) -> bool:
         return pos[1] < -Goal.DISTANCE if self.team == 0 else pos[1] > Goal.DISTANCE
@@ -52,9 +52,9 @@ class GameInfo(Game):
         for pad in self.small_boost_pads:
             pad.timer = 4.0 - pad.timer
 
-        # team_sign = 1 - 2 * self.team
-        # left = team_sign == sign(self.ball.position[0])
-        # self.far_post = self.my_goal.l_post if left else self.my_goal.r_post
+        team_sign = 1 - 2 * self.team
+        left = team_sign != sign(self.ball.position[0])
+        self.far_post = self.my_goal.l_post if left else self.my_goal.r_post
         
     def _get_large_boost_pads(self, field_info: FieldInfoPacket) -> List[Pad]:
         return [self.pads[i] for i in range(field_info.num_boosts) if field_info.boost_pads[i].is_full_boost]
