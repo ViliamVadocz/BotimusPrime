@@ -6,9 +6,11 @@ from maneuvers.kickoffs.simple_kickoff import SimpleKickoff
 from maneuvers.kickoffs.speed_flip_kickoff import SpeedFlipKickoff
 from maneuvers.refuel import Refuel
 from maneuvers.shadow_defense import ShadowDefense
+# from maneuvers.defend import Defend
 from maneuvers.strikes.clear_into_corner import ClearIntoCorner
 from maneuvers.strikes.strike import Strike
 from rlutilities.simulation import Car, Pad
+from rlutilities.linear_algebra import vec3
 from strategy.kickoffs import KickoffStrategy
 from strategy.offense import Offense
 from utils.arena import Arena
@@ -16,13 +18,17 @@ from utils.drawing import DrawingTool
 from utils.drone import Drone
 from utils.game_info import GameInfo
 from utils.intercept import Intercept, estimate_time
-from utils.vector_math import align, ground, ground_distance, distance
+from utils.vector_math import align, ground, ground_distance, distance, nearest_point
 
+
+GOOD_ALIGNMENT_MIN = 0.0
 
 class HivemindStrategy:
-    def __init__(self, info: GameInfo):
+    def __init__(self, info: GameInfo, logger):
         self.info: GameInfo = info
         self.offense: Offense = Offense(info)
+
+        self.logger = logger
 
         # the drone that is currently committed to hitting the ball
         self.drone_going_for_ball: Optional[Drone] = None
@@ -46,38 +52,46 @@ class HivemindStrategy:
             if drone.maneuver is None and not drone.car.on_ground:
                 drone.maneuver = Recovery(drone.car)
 
-        # decide which drone is gonna commit
-        if self.drone_going_for_ball is None:
-            ready_drones = [drone for drone in drones
-                            if drone.car.on_ground and not drone.controls.jump and not drone.car.demolished]
-            if not ready_drones:
-                return
+        # ready if on ground and alive
+        ready_drones = [drone for drone in drones if drone.car.on_ground and not drone.controls.jump and not drone.car.demolished]
+        if not ready_drones:
+            return
+        
+        # kickoff
+        if info.kickoff_pause:
+            self.drone_going_for_ball = min(drones, key=lambda drone: distance(vec3(0, 0, 0), drone.car.position))
+            self.drone_going_for_ball.maneuver = KickoffStrategy.choose_kickoff(info, self.drone_going_for_ball.car)
 
+        else:
             info.predict_ball()
             our_intercepts = [Intercept(drone.car, info.ball_predictions) for drone in ready_drones]
-            good_intercepts = [i for i in our_intercepts if align(i.car.position, i.ball, their_goal) > 0.0]
+            good_intercepts = [i for i in our_intercepts if align(i.car.position, i.ball, their_goal) > GOOD_ALIGNMENT_MIN]
 
+            # shot opportunities exist
             if good_intercepts:
                 best_intercept = min(good_intercepts, key=lambda intercept: intercept.time)
-            else:
-                best_intercept = max(our_intercepts, key=lambda i: align(i.car.position, i.ball, their_goal))
-
-            # find out which drone does the intercept belong to
-            self.drone_going_for_ball = next(drone for drone in ready_drones if drone.car == best_intercept.car)
-
-            if info.kickoff_pause:
-                strike = KickoffStrategy.choose_kickoff(info, best_intercept.car)
-
-            # if not completely out of position, go for a shot
-            elif (
-                align(best_intercept.car.position, best_intercept.ball, their_goal) > -0.3
-                or ground_distance(best_intercept, our_goal) > 6000
-            ):
                 strike = self.offense.any_shot(best_intercept.car, their_goal, best_intercept)
 
-            else:  # otherwise try to clear
-                strike = ClearIntoCorner(best_intercept.car, info)
+            else:
+                opp_intercepts = [Intercept(opponent, info.ball_predictions) for opponent in info.get_opponents(drone.car)]
+                best_opp_time = min(map(lambda intercept: intercept.time, opp_intercepts))
+                faster_intercepts = [intercept for intercept in our_intercepts if intercept.time < best_opp_time]
 
+                # we are faster than the fastest opponent, try to get the best shot
+                if faster_intercepts:
+                    best_intercept = max(faster_intercepts, key=lambda i: align(i.car.position, i.ball, their_goal))
+                    strike = self.offense.any_shot(best_intercept.car, their_goal, best_intercept)
+
+                # looks like we are slower, try to be first at the ball
+                else:
+                    best_intercept = min(our_intercepts, key=lambda intercept: intercept.time)
+                    if ground_distance(best_intercept, our_goal) > 6000:
+                        strike = self.offense.any_shot(best_intercept.car, their_goal, best_intercept)
+                    else:
+                        strike = ClearIntoCorner(best_intercept.car, info)
+
+            # 🥴
+            self.drone_going_for_ball = next(drone for drone in ready_drones if drone.car == best_intercept.car)
             self.drone_going_for_ball.maneuver = strike
 
         # clear expired boost reservations
