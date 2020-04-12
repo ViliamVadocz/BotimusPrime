@@ -6,7 +6,7 @@ from maneuvers.kickoffs.simple_kickoff import SimpleKickoff
 from maneuvers.kickoffs.speed_flip_kickoff import SpeedFlipKickoff
 from maneuvers.refuel import Refuel
 from maneuvers.shadow_defense import ShadowDefense
-# from maneuvers.defend import Defend
+from maneuvers.defend import Defend
 from maneuvers.strikes.clear_into_corner import ClearIntoCorner
 from maneuvers.strikes.strike import Strike
 from rlutilities.simulation import Car, Pad
@@ -109,8 +109,9 @@ class HivemindStrategy:
                     shadow_distance = 3000
                     if self.defending_drone is None:
                         self.defending_drone = drone
-                        shadow_distance = 8000
-                    drone.maneuver = ShadowDefense(drone.car, info, info.ball.position, shadow_distance)
+                        drone.maneuver = Defend(drone.car, info)
+                    else:
+                        drone.maneuver = ShadowDefense(drone.car, info, info.ball.position, shadow_distance)
 
     def render(self, draw: DrawingTool):
         pass
